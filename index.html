@@ -1,0 +1,330 @@
+<html>
+    <body>
+        <head>
+            <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.min.js"></script>
+            <link rel="stylesheet" type="text/css" href="styles/nggIndex.css">
+            <title>NumberCompute</title>
+        </head>  
+                <div id="wrapper"></div>
+
+                <div id="top">
+                    <div id="imgHolder"><img id="appImg" src="imgs/diceImg.png" alt="zkpImg" title="App Image"/></div>
+                    <div id="appTitleHolder">
+                        <p id="appHeading">Secured Number Computation Game</p>
+                    </div>
+                </div>
+
+                 <div id="middleWrapper">
+                    <div id="mleftPart">
+                        <div id="middleLeftSection">
+                            
+                            <button type="button" class="btn btn-primary btn-large btn-block" id="buttonOne"
+                            onclick="showInstructions()">Game Instructions</button>
+                            
+                            <button type="button" class="btn btn-primary btn-large btn-block" id="buttonOne"
+                            onclick="showCommit()">Commit to Game</button> 
+
+                            <button type="button" class="btn btn-primary btn-large btn-block" id="buttonTwo"
+                            onclick="showReveal()">Reveal Number</button>
+
+                            <button type="button" class="btn btn-primary btn-large btn-block" id="buttonTwo"
+                            onclick="getScore()">Check Points</button>
+                        </div>
+                    </div>
+
+                    <div id="mRightPart">
+                        <div id="middleRightSectionInstructions" class="middleRightDisplay">
+                            <h2>Game Instructions</h2>
+                            <p class="instructions">Step 1: Pick a natural number.</p>
+                            <p class="instructions">Step 2: Add Five (5) to the number.</p>
+                            <p class="instructions">Step 3: Pick a natural number.</p>
+                            <p class="instructions">Step 4: Pick a natural number.</p>
+                            <p class="instructions">Step 5: Pick a natural number.</p>
+                            <p class="instructions">Step 6: Click Commit to Game button.</p>
+                            <p class="instructions">Step 7: Reveal your number for verification and points.</p>
+                        </div>
+
+                        <div id="middleRightSectionComit" class="middleRightDisplay">
+                            <input type="text" class="dataSectionLong" placeholder="Enter Hash of chosen number here." id="hashOfNum"></input>
+                            <input type="text" class="dataSectionSmall" placeholder="Final answer here" id="userAns"></input>
+                            <button onclick="pushCommitmentToSC()" class="btn btn-primary btn-large btn-block" id="pushBtn">Send to Contract</button>
+                        </div>
+
+                        <div id="middleRightSectionReveal" class="middleRightDisplay">
+                            <input type="text" class="dataSectionSmall" placeholder="Number Picked" id="userRevAns"></input>
+                            <button onclick="pushRevealToSC()" class="btn btn-primary btn-large btn-block" id="pushBtn">Send to Contract</button>
+                        </div>
+
+                        <div id="middleRightSectionPtCheck" class="middleRightDisplay" style="overflow-x:auto">
+                            <table>
+                                <thread>
+                                    <tr>
+                                        <th>Points Below</th>
+                                    </tr>
+                                    <tr>
+                                        <td id="userPoints"></td>
+                                    </tr>
+                                </thread>
+                            </table>
+                        </div>
+
+                        <div id="msgCorner">
+                            <strong><p class="success" id="showNhideSuccess"></strong></p>
+                            <strong><p class="error" id="showNhideError"></strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="footer">
+                    © 2019 JustNET. All Rights Reserved. 
+                </div>
+     </body>
+
+     <script type="text/javascript" src="js/jquery321.js"></script>
+     <script type="text/javascript" src="js/contractABI.js"></script>
+     
+     <script>
+         
+         if (typeof web3 !== 'undefined')
+         {
+             web3 = new Web3(web3.currentProvider);
+         }
+     else
+         {   
+             // set the provider you want from Web3.providers
+             web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545")); // This node address should be same for Ganache.
+           
+         }
+         web3.eth.getAccounts().then(accounts => {
+             console.log(accounts[0])
+             web3.eth.defaultAccount =accounts[0]
+        });
+         
+        var numberGameContract = new web3.eth.Contract(ABI,contractAddress, {defaultGas: suppliedGas});// End of ABi Code from Remix.
+     
+    // Logic begins from here.
+    function showInstructions(){
+        $("#middleRightSectionInstructions").show(); // Display the hidden div to show hidden elements.
+    }
+
+    function showCommit(){
+        $("#middleRightSectionComit").show(); // Display the hidden div to show hidden elements.
+    }
+
+    function showReveal(){
+        $("#middleRightSectionReveal").show(); // Display the hidden div to show hidden elements.
+    }
+
+    function showScore(){
+        $("#middleRightSectionPtCheck").show(); // Display the hidden div to show hidden elements.
+    }
+
+    // Reload Page upon error. 
+    function reloadPg(){
+        window.setTimeout(function(){
+                            window.location.href = "./index.html";
+                        },1500); // Refresh after 1.5 sec.
+    }
+
+    // Number validation functions begin.
+    function hashValidation(input) {
+        let count = input.toString().length;
+        if(input=='' || Number(input)==NaN || parseInt(input,16)==NaN || input<0 || input<1 || isNaN(input)==true || count <=64){
+            return 0;
+        }
+        else {
+            return 1;
+        }
+    } 
+
+    function answerValidation(input) {
+        if(input=='' || Number(input)==NaN || parseInt(input,16)==NaN || input<0 || input<1 || isNaN(input)==true){
+            return 0;
+        }
+        else {
+            return 1;
+        }
+    } 
+
+    function answerValidationReveal(input) {
+        if(input=='' || Number(input)==NaN || parseInt(input,16)==NaN || input<0 || isNaN(input)==true){
+            return 0;
+        }
+        else {
+            return 1;
+        }
+    } 
+    // Number validation functions end. 
+
+
+    // Function to send player commitment to the Smart Contract.
+    function pushCommitmentToSC(){
+        console.log("Commit Btn clicked")
+        let numHash  = $("#hashOfNum").val();
+        let userAns  = $("#userAns").val();
+
+        if(hashValidation(numHash)==1 && answerValidation(userAns)==1){
+            let txHash = ''
+            let blkNum = ''
+            numberGameContract.methods.commitmentStage(numHash, userAns).send({
+                    from: web3.eth.defaultAccount,
+                    gas: 270000  
+            }).on('transactionHash', (hash)=>{  
+                txHash = hash;
+                console.log("Trans. hash is: ", txHash);
+            }).on('receipt', (receipt)=>{   
+                transReceipt = receipt;
+                blkNum = transReceipt['blockNumber']
+                console.log("Trans. Block Number is: ", blkNum);
+                getMsg()
+                getError()
+            }).on('error', (error)=>{
+                $("#msgCorner").show(); // Display the hidden div to accept the comming entries.
+                document.getElementById("showNhideError").innerHTML = "Sorry. Error occured. Retry again."
+                reloadPg();
+                });
+        // This displays transaction hash and block number as well as other details from 'receipt' if needed.
+    }
+    else{
+            $("#msgCorner").show(); // Display the hidden div to accept the comming entries.
+            document.getElementById("showNhideError").innerHTML = "Invalid input."
+            reloadPg();
+        }
+    }
+
+    // Function to send player revealed answer to the Smart Contract.
+    function pushRevealToSC(){
+        console.log("Reveal Btn clicked")
+        let userAns  = $("#userRevAns").val();
+        console.log("Entered number is: ", userAns)
+
+        if(answerValidationReveal(userAns)==1){
+            let txHash = ''
+            let blkNum = ''
+            numberGameContract.methods.revealState(userAns).send({
+                    from: web3.eth.defaultAccount,
+                    gas: 270000  
+            }).on('transactionHash', (hash)=>{  
+                txHash = hash;
+                console.log("Trans. hash is: ", txHash);
+            }).on('receipt', (receipt)=>{   
+                transReceipt = receipt;
+                blkNum = transReceipt['blockNumber']
+                console.log("Trans. Block Number is: ", blkNum);
+                getAnswer()
+                getError()
+            }).on('error', (error)=>{
+                $("#msgCorner").show(); // Display the hidden div to accept the comming entries.
+                document.getElementById("showNhideError").innerHTML = "Sorry. Error occured. Retry again."
+                reloadPg();
+                });
+        // This displays transaction hash and block number as well as other details from 'receipt' if needed.
+    }
+    else{
+            $("#msgCorner").show(); // Display the hidden div to accept the comming entries.
+            document.getElementById("showNhideError").innerHTML = "Invalid input."
+            console.log("Revealed check.")
+            reloadPg();
+        }
+    }
+
+    // Events tracking begins.
+    function getAnswer(){
+        numberGameContract.getPastEvents('ansByUser',{fromBlock: 'latest', toBlock: 'latest'},
+            function(err, results) { 
+                if(err) {
+                    $("#msgCorner").show(); // Display the hidden div to accept the comming entries.
+					document.getElementById("showNhideError").innerHTML = "There was error.";
+    				return;
+  			}
+             // Else use the data recieved.
+              for (var {returnValues:{text: Text, ans: Answer, getPoints: points}} of results) {
+                console.log('Text is: ' + Text);   
+                console.log('Answer is: ' + Answer); 
+                console.log('Motivation: ' + points); 
+                $("#msgCorner").show(); // Display the hidden div to accept the comming entries.
+                document.getElementById("showNhideSuccess").innerHTML = Text + Answer + points;
+                return;
+            }
+        });
+    }
+
+    function getError(){
+        numberGameContract.getPastEvents('error',{fromBlock: 'latest', toBlock: 'latest'},
+            function(err, results) { 
+                if(err) {
+                    $("#msgCorner").show(); // Display the hidden div to accept the comming entries.
+					document.getElementById("showNhideError").innerHTML = "There was error.";
+    				return;
+  			}
+             // Else use the data recieved.
+              console.log("Error result is: ", results)
+              for (var {returnValues:{message: Text}} of results) {
+                console.log('Error is: ' + Text);   
+                $("#msgCorner").show(); // Display the hidden div to accept the comming entries.
+                document.getElementById("showNhideSuccess").innerHTML = Text;
+                return;
+            }
+        });
+    }
+
+    function getMsg(){
+        numberGameContract.getPastEvents('msgUser',{fromBlock: 'latest', toBlock: 'latest'},
+            function(err, results) { 
+                if(err) {
+                    $("#msgCorner").show(); // Display the hidden div to accept the comming entries.
+					document.getElementById("showNhideError").innerHTML = "There was error.";
+    				return;
+  			}
+             // Else use the data recieved.
+              for (var {returnValues:{text: Text}} of results) {
+                console.log('Answer is: ' + Text);   
+                $("#msgCorner").show(); // Display the hidden div to accept the comming entries.
+                document.getElementById("showNhideSuccess").innerHTML = Text;
+                return;
+            }
+        });
+    }
+
+    function getPoints(){
+        numberGameContract.getPastEvents('points',{fromBlock: 'latest', toBlock: 'latest'},
+            function(err, results) { 
+                if(err) {
+                    $("#msgCorner").show(); // Display the hidden div to accept the comming entries.
+					document.getElementById("showNhideError").innerHTML = "There was error.";
+    				return;
+  			}
+             // Else use the data recieved.
+             // For wrong proof from Contract.
+              for (var {returnValues:{text: Text, ans: Answer, points: pointsWon}} of results) {
+                console.log('Answer is: ' + Text);   
+                $("#msgCorner").show(); // Display the hidden div to accept the comming entries.
+                document.getElementById("showNhideSuccess").innerHTML = Text + Answer + pointsWon;
+                return;
+            }
+        });
+    }
+
+    // Events tracking ends.
+    function getScore(){
+        let points;
+        numberGameContract.methods.checkScore().call({from: web3.eth.defaultAccount},
+		function(error, result){
+			// Handle errors if any occure.
+  			if(error) {
+                        showScore()
+                        $("#msgCorner").show(); // Display the hidden div to accept the comming entries.
+                        document.getElementById("showNhideError").innerHTML = "Sorry. Error occured."
+                        return;
+  			}
+  			    // Else use the data recieved.
+                points = result;
+                showScore()
+                getPoints()
+			    document.getElementById("userPoints").innerHTML = points; 
+  			    console.log(points);
+		});
+    }
+
+     </script>
+ </html>

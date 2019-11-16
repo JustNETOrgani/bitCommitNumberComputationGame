@@ -1,0 +1,60 @@
+
+<html>
+    <body>
+         <head>
+            <script src="https://cdn.jsdelivr.net/gh/ethereum/web3.js@1.0.0-beta.34/dist/web3.min.js"></script>
+          <title>Compute Hash</title>
+         </head>
+
+         <div id="userInputDiv">
+            <label>User input</label>
+            <input type="text" id="userInput" placeholder="Enter Number here" size="65">
+            <br>
+            <br>
+            <button onclick="pushToContract()">Get Hash</button>
+         </div>
+         <p id="web3FuncHash"></p>
+         <p id="errorZone"></p>
+                 
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script> 
+
+<script>
+//Web3 interaction with the blockchain via script begins.
+
+    if (typeof web3 !== 'undefined')
+    {
+        web3 = new Web3(web3.currentProvider);
+    }
+    else
+    {
+        // set the provider you want from Web3.providers
+        web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545")); // This node address should be same for Ganache.
+        
+    }
+    web3.eth.getAccounts().then(accounts => {
+        let accountNo = 0;  // Select account Number based on Ganache-cli accounts.
+        console.log(accounts[accountNo])
+        web3.eth.defaultAccount =accounts[accountNo]
+    });
+    //Web3 interaction with the blockchain ends.
+
+    var hashContract = new web3.eth.Contract(ABI,contractAddress, {defaultGas: suppliedGas});// End of ABi Code from Remix.
+
+function getHash(input){
+    return web3.utils.soliditySha3(
+        {t: 'uint256', v: input} // t: type and v: value;
+    );
+}
+  
+    function pushToContract(){
+        console.log("Button clicked")
+        
+        let userText  = $("#userInput").val();
+        // Get hash from front end.
+        let solidityHash = getHash(userText);
+        document.getElementById("web3FuncHash").innerHTML = "The hash from Web3 : " + solidityHash;
+    }
+
+</script>
+     </body>
+ </html>
